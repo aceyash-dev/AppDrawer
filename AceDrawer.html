@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AppDrawer Ultimate</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://www.google.com/recaptcha/enterprise.js" async defer></script>
+    
+    <style>
+        /* --- DESIGN SYSTEM --- */
+        :root {
+            --bg-color: #030304;
+            --glass-menu: rgba(10, 10, 14, 0.98);
+            --glass-solid: rgba(20, 20, 25, 1);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --text-dim: #9ca3af;
+            --key-bg: rgba(255, 255, 255, 0.05);
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --secondary: #ec4899;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --gold: #fbbf24;
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f3f4f6; --glass-menu: rgba(255, 255, 255, 0.98);
+            --glass-solid: #ffffff; --border: rgba(0, 0, 0, 0.08); --text: #1f2937; --text-dim: #6b7280;
+            --key-bg: #ffffff; --primary: #4f46e5; --primary-glow: rgba(79, 70, 229, 0.2);
+        }
+        [data-theme="gold"] {
+            --bg-color: #1a1500; --glass-menu: rgba(20, 15, 5, 0.98);
+            --glass-solid: #2a2200; --border: rgba(251, 191, 36, 0.2); --text: #fffbeb; --text-dim: #d4b996;
+            --key-bg: rgba(251, 191, 36, 0.1); --primary: #fbbf24; --primary-glow: rgba(251, 191, 36, 0.4); --secondary: #f59e0b;
+        }
+        [data-theme="nature"] {
+            --bg-color: #051a10; --glass-solid: #0a2915; --border: rgba(52, 211, 153, 0.15);
+            --primary: #10b981; --primary-glow: rgba(16, 185, 129, 0.4); --secondary: #34d399;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation; }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, var(--primary-glow) 0%, transparent 60%);
+            color: var(--text);
+            display: flex; justify-content: center; align-items: center;
+            height: 100dvh; margin: 0; overflow: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* TOAST NOTIFICATIONS */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 350px; pointer-events: none; }
+        .toast { background: var(--glass-menu); backdrop-filter: blur(10px); border: 1px solid var(--border); padding: 12px 16px; border-radius: 12px; color: var(--text); font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.5); opacity: 0; transform: translateY(-20px); transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { border-left: 4px solid var(--accent); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--primary); }
+
+        /* SPLASH */
+        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #000; transition: transform 0.5s cubic-bezier(0.8, 0, 0.2, 1); }
+        #splash.hidden { transform: translateY(-100%); pointer-events: none; }
+        
+        .container { position: relative; background: transparent; width: 100%; height: 100dvh; max-width: 500px; display: flex; flex-direction: column; padding: 15px; overflow: hidden; margin: 0; border: none; }
+        .content-spacer { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+        /* HEADER & TABS */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; height: 44px; flex-shrink: 0; }
+        .icon-btn { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text); width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .icon-btn:active { transform: scale(0.92); background: var(--primary-glow); }
+        .app-title { font-weight: 800; font-size: 1.3rem; letter-spacing: -0.5px; opacity: 0.9; }
+
+        .tabs { display: flex; background: var(--glass-solid); padding: 5px; border-radius: 18px; margin-top: 10px; margin-bottom: 55px; border: 1px solid var(--border); flex-shrink: 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.3); z-index: 50; }
+        .container.premium .tabs { margin-bottom: 10px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; color: var(--text-dim); font-size: 0.9rem; font-weight: 600; cursor: pointer; border-radius: 14px; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .tab-btn.active { background: var(--key-bg); color: var(--primary); }
+
+        .view-section { display: none; flex-direction: column; height: 100%; overflow: hidden; opacity: 0; animation: fadeIn 0.3s forwards; }
+        .view-section.active { display: flex; opacity: 1; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* SIDEBAR */
+        .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(4px); z-index: 900; display:none; opacity:0; transition: opacity 0.3s; }
+        .overlay.open { display: block; opacity: 1; }
+        .side-menu { position: fixed; top: 0; left: 0; width: 85%; height: 100%; max-width: 320px; background: var(--glass-menu); border-right: 1px solid var(--border); z-index: 1000; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1); padding: 25px; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: none; }
+        .side-menu.open { transform: translateX(0); }
+
+        .menu-btn { display: flex; align-items: center; gap: 15px; width: 100%; padding: 16px; border-radius: 16px; margin-bottom: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text); font-family: var(--font-main); font-weight: 600; cursor: pointer; transition: 0.2s; text-align: left; }
+        .menu-btn:active { background: rgba(255,255,255,0.08); transform: scale(0.98); }
+        .section-label { font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--text-dim); margin: 20px 0 10px 5px; opacity: 0.7; }
+        
+        .offer-btn { background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(255,255,255,0.01)); border: 1px solid rgba(99, 102, 241, 0.3); position: relative; overflow: hidden; }
+        .offer-btn::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--primary); }
+
+        /* TOOLS & CALC */
+        .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; overflow-y: auto; padding-bottom: 20px; align-content: start; flex-grow: 1; scrollbar-width: none; }
+        .tool-card { background: var(--key-bg); border: 1px solid var(--border); border-radius: 18px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .tool-card:active { transform: scale(0.96); border-color: var(--primary); }
+        .tool-icon { font-size: 1.8rem; margin-bottom: 8px; }
+
+        .screen { text-align: right; margin-bottom: 10px; display: flex; flex-direction: column; justify-content: flex-end; padding: 15px; border-radius: 20px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); min-height: 130px; position: relative; overflow: hidden; flex-shrink: 0; }
+        .screen-actions { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; }
+        .tiny-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text-dim); border-radius: 8px; padding: 6px 10px; font-size: 0.75rem; cursor: pointer; font-weight: 600; display:flex; align-items:center; gap:5px; transition:0.2s;}
+        .tiny-btn:active { background:var(--primary); color:white; }
+        .current-input { font-family: var(--font-mono); font-weight: 500; line-height: 1; cursor: pointer; word-break: break-all; }
+        
+        .keypad-wrapper { display: grid; grid-template-columns: 3fr 1fr; gap: 8px; height: 100%; flex-grow: 1; min-height: 0; padding-bottom: 5px; }
+        .grid-left { position: relative; overflow: hidden; display: flex; }
+        .grid-right { display: grid; grid-template-rows: repeat(5, 1fr); gap: 8px; }
+        .key-layer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; position: absolute; top:0; left:0; width: 100%; height: 100%; transition: 0.3s; opacity: 0; transform: scale(0.9); pointer-events: none; z-index: 1; }
+        .key-layer.active { opacity: 1; transform: scale(1); pointer-events: auto; z-index: 2; }
+        button.key { padding: 0; border: none; border-radius: 14px; background: var(--key-bg); color: var(--text); font-size: 1.4rem; cursor: pointer; transition: 0.1s; font-family: var(--font-main); }
+        button.key:active { transform: translateY(2px); background: rgba(255,255,255,0.1); }
+        button.key.op { color: var(--primary); background: rgba(99, 102, 241, 0.1); font-weight: 700; }
+        button.key.sci { color: var(--secondary); font-size: 1.1rem; background: rgba(236, 72, 153, 0.1); font-weight: 600; }
+        button.key.eq { background: var(--primary); color: white; box-shadow: 0 4px 15px var(--primary-glow); font-size: 1.8rem; }
+        .mode-switch { grid-column: span 3; background: var(--glass-solid); border: 1px solid var(--border); font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+
+        /* MODALS */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-color); z-index: 1100; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 30px; }
+        .modal.open { display: flex; }
+        
+        .profile-img { width:100%; height:100%; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--secondary)); display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.5rem; overflow:hidden; border:2px solid rgba(255,255,255,0.2); }
+        .special-frame .profile-img { border: 2px solid transparent; }
+        .special-frame::after { content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px; border-radius: 50%; background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000); z-index: -1; animation: spinFrame 2s linear infinite; }
+        @keyframes spinFrame { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+
+        input, select { width: 100%; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 16px; color: var(--text); font-size: 1.1rem; outline: none; margin-bottom: 12px; font-family: var(--font-mono); }
+        .action-btn { width:100%; padding:18px; background:var(--primary); color:#fff; border:none; border-radius:16px; font-weight:700; cursor:pointer; }
+        
+        .ad-footer { position: fixed; bottom: 0; left: 0; width: 100%; height: 50px; background: #000; border-top: 1px solid var(--border); z-index: 9999; display: flex; justify-content: center; align-items: center; transition: transform 0.4s; }
+        body.menu-open .ad-footer { transform: translateY(100%); }
+        #game-frame { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-color); z-index: 200; display:none; flex-direction:column; }
+        #game-frame.open { display: flex; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div id="splash">
+        <div style="font-size: 3.5rem; font-weight: 800; color:white; margin-bottom: 20px;">AppDrawer</div>
+        <div style="width: 150px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;"><div style="width: 100%; height: 100%; background: var(--primary); animation: load 1.5s ease-in-out forwards; transform-origin: left;"></div></div>
+        <style>@keyframes load { from { transform: scaleX(0); } to { transform: scaleX(1); } }</style>
+    </div>
+
+    <div class="overlay" onclick="toggleMenu()"></div>
+    
+    <div class="side-menu">
+        <div style="display:flex; align-items:center; margin-bottom:20px; padding:15px; border:1px solid var(--border); border-radius:18px; background: rgba(255,255,255,0.03); cursor: pointer;" onclick="openProfile()">
+            <div id="pfp-container" style="position:relative; width:50px; height:50px;">
+                <div id="profile-img" class="profile-img">A</div>
+            </div>
+            <div style="margin-left:15px;">
+                <div id="profile-name" style="font-weight:800; font-size:1.1rem;">Guest</div>
+                <div id="auth-status" style="font-size:0.75rem; color:var(--text-dim);">Tap to view profile</div>
+            </div>
+        </div>
+        
+        <button class="menu-btn" onclick="toggleMenu(); switchTab('tools')"><span>🛠️</span> Tools Dashboard</button>
+        <button class="menu-btn" onclick="toggleMenu(); switchTab('calc')"><span>∫</span> Calculator</button>
+        <button class="menu-btn" onclick="toggleMenu(); switchTab('curr')"><span>💱</span> Rates</button>
+        <button class="menu-btn" onclick="openShop()"><span>🛒</span> Shop & Themes</button>
+        
+        <div class="section-label">Premium Games</div>
+        <button class="menu-btn" onclick="handleLocked('ttt')"><span>❌</span> Tic Tac Toe <span class="lock-icon" style="margin-left:auto; opacity:0.5">🔒</span></button>
+        
+        <div class="sidebar-ad" style="margin: 10px 0; padding:10px; background:rgba(0,0,0,0.5); border-radius:12px; text-align:center;">
+             <div style="font-size:0.6rem; color:var(--text-dim); margin-bottom:5px;">SPONSORED</div>
+             <script type="text/javascript"> atOptions = { 'key' : 'efb841baf241a82a42f707341d11cc80', 'format' : 'iframe', 'height' : 50, 'width' : 240, 'params' : {} }; </script>
+             <script type="text/javascript" src="https://backstageemergencyblame.com/efb841baf241a82a42f707341d11cc80/invoke.js"></script>
+        </div>
+
+        <div class="section-label">Paid Providers</div>
+        <button class="menu-btn offer-btn" onclick="openExternal('https://otieu.com/4/10382303')"><span>🔥</span> Premium Deal</button>
+        <button class="menu-btn offer-btn" onclick="openExternal('https://otieu.com/4/10382302')"><span>⚡</span> Exclusive Offer</button>
+        <button class="menu-btn offer-btn" onclick="openExternal('https://otieu.com/4/10382301')"><span>💎</span> Special Bonus</button>
+        <button class="menu-btn offer-btn" onclick="openExternal('https://otieu.com/4/10382300')"><span>🎁</span> Limited Time</button>
+        <button class="menu-btn offer-btn" onclick="openExternal('https://otieu.com/4/10382299')"><span>🚀</span> Top Pick</button>
+        
+        <div style="margin-top:20px;">
+             <button class="menu-btn" onclick="openExternal('https://dedicated-panda.static.domains')"><span>🏠</span> Homepage</button>
+             <button class="menu-btn" onclick="reportBug()"><span>🐞</span> Report Bug</button>
+             <button class="menu-btn" onclick="openExternal('https://privacy.tiiny.site')"><span>🔒</span> Privacy Policy</button>
+        </div>
+    </div>
+
+    <div class="container" id="app-container">
+        <div class="header">
+            <button class="icon-btn" onclick="toggleMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+            <div class="app-title">AppDrawer</div>
+            <button class="icon-btn" onclick="openShop()"><span id="header-coins" style="font-size:0.8rem; font-weight:700; color:var(--gold);">0</span><span style="font-size:1.2rem;">🪙</span></button>
+        </div>
+
+        <div class="content-spacer">
+            <div id="tools-view" class="view-section active">
+                <div class="tools-grid" id="tools-main">
+                    <div class="tool-card" onclick="openTool('age')"><div class="tool-icon">🎂</div><div class="tool-name">Age</div></div>
+                    <div class="tool-card" onclick="openTool('bmi')"><div class="tool-icon">⚖️</div><div class="tool-name">BMI</div></div>
+                    <div class="tool-card" onclick="openTool('disc')"><div class="tool-icon">🏷️</div><div class="tool-name">Discount</div></div>
+                    <div class="tool-card" onclick="openTool('tip')"><div class="tool-icon">💸</div><div class="tool-name">Tip</div></div>
+                    <div class="tool-card" onclick="openTool('loan')"><div class="tool-icon">💰</div><div class="tool-name">Loan</div></div>
+                    <div class="tool-card" onclick="openUnit('len')"><div class="tool-icon">📏</div><div class="tool-name">Length</div></div>
+                    <div class="tool-card" onclick="openUnit('weight')"><div class="tool-icon">🏋️</div><div class="tool-name">Mass</div></div>
+                    <div class="tool-card" onclick="openUnit('spd')"><div class="tool-icon">🚀</div><div class="tool-name">Speed</div></div>
+                    <div class="tool-card" onclick="openUnit('temp')"><div class="tool-icon">🌡️</div><div class="tool-name">Temp</div></div>
+                </div>
+                <div id="tool-ui" style="display:none; flex-direction:column; height:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 id="tool-title" style="margin:0; font-size:1.5rem; color:var(--primary);">Tool</h3>
+                        <button onclick="closeTool()" style="background:none; border:none; color:var(--text-dim); cursor:pointer; font-weight:600;">Close</button>
+                    </div>
+                    <div id="tool-inputs" style="flex-grow:1;"></div>
+                    <div style="background:var(--key-bg); padding:20px; border-radius:16px; margin-bottom:15px; border:1px solid var(--border);">
+                        <span id="tool-res" style="font-size:1.1rem; font-weight:700; color:var(--text); white-space: pre-wrap; line-height:1.4;">--</span>
+                    </div>
+                    <button class="action-btn" onclick="calcTool()">Calculate</button>
+                </div>
+            </div>
+
+            <div id="calc-view" class="view-section">
+                <div class="screen">
+                    <div class="screen-actions">
+                        <button class="tiny-btn" onclick="copyResult()">📋 Copy</button>
+                    </div>
+                    <div class="current-input" id="display" style="font-size: 3.5rem;">0</div>
+                </div>
+                <div class="keypad-wrapper">
+                    <div class="grid-left">
+                        <div class="key-layer active" id="keys-num">
+                            <button class="key op" onclick="op('AC')">AC</button>
+                            <button class="key op" onclick="op('DEL')">⌫</button>
+                            <button class="key op" onclick="op('%')">%</button>
+                            <button class="key" onclick="num('7')">7</button>
+                            <button class="key" onclick="num('8')">8</button>
+                            <button class="key" onclick="num('9')">9</button>
+                            <button class="key" onclick="num('4')">4</button>
+                            <button class="key" onclick="num('5')">5</button>
+                            <button class="key" onclick="num('6')">6</button>
+                            <button class="key" onclick="num('1')">1</button>
+                            <button class="key" onclick="num('2')">2</button>
+                            <button class="key" onclick="num('3')">3</button>
+                            <button class="key mode-switch" onclick="toggleMode()">123 ⇄ SCI</button>
+                            <button class="key" onclick="num('0')">0</button>
+                            <button class="key" onclick="num('.')">.</button>
+                        </div>
+                        <div class="key-layer" id="keys-sci">
+                            <button class="key sci" onclick="premium('sin')">sin</button>
+                            <button class="key sci" onclick="premium('cos')">cos</button>
+                            <button class="key sci" onclick="premium('tan')">tan</button>
+                            <button class="key sci" onclick="premium('log')">log</button>
+                            <button class="key sci" onclick="premium('ln')">ln</button>
+                            <button class="key sci" onclick="premium('pi')">π</button>
+                            <button class="key sci" onclick="premium('fact')">x!</button>
+                            <button class="key sci" onclick="premium('e')">e</button>
+                            <button class="key sci" onclick="premium('pow')">^</button>
+                            <button class="key sci" onclick="premium('root')">√<span class="lock-badge">🔒</span></button>
+                            <button class="key sci" onclick="premium('sqr')">x²<span class="lock-badge">🔒</span></button>
+                            <button class="key sci" onclick="premium('cube')">x³<span class="lock-badge">🔒</span></button>
+                            <button class="key mode-switch" onclick="toggleMode()">123 ⇄ SCI</button>
+                            <button class="key sci" onclick="num('(')">(</button>
+                            <button class="key sci" onclick="num(')')">)</button>
+                        </div>
+                    </div>
+                    <div class="grid-right">
+                        <button class="key op" onclick="op('/')">÷</button>
+                        <button class="key op" onclick="op('*')">×</button>
+                        <button class="key op" onclick="op('-')">-</button>
+                        <button class="key op" onclick="op('+')">+</button>
+                        <button class="key eq" onclick="solve()">=</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="curr-view" class="view-section">
+                <div style="background:var(--key-bg); padding:20px; border-radius:20px; border:1px solid var(--border);">
+                    <span style="font-size:0.8rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Amount</span>
+                    <input type="number" id="c-amt" value="1" oninput="runCurr()" style="background:transparent; border:none; font-size:3rem; padding:10px 0; margin:0; font-weight:300;">
+                </div>
+                <div style="display:flex; gap:12px; margin-top:20px;">
+                    <div style="flex:1"><span class="section-label" style="margin:0 0 5px 0;">From</span><select id="c-from" onchange="runCurr()"><option value="USD">🇺🇸 USD</option><option value="EUR">🇪🇺 EUR</option><option value="INR">🇮🇳 INR</option><option value="GBP">🇬🇧 GBP</option><option value="JPY">🇯🇵 JPY</option></select></div>
+                    <div style="flex:1"><span class="section-label" style="margin:0 0 5px 0;">To</span><select id="c-to" onchange="runCurr()"><option value="INR">🇮🇳 INR</option><option value="USD">🇺🇸 USD</option><option value="EUR">🇪🇺 EUR</option><option value="GBP">🇬🇧 GBP</option><option value="JPY">🇯🇵 JPY</option></select></div>
+                </div>
+                <div style="text-align:center; margin-top:auto; padding-bottom:30px;">
+                    <div id="c-res" style="font-size:3.5rem; font-weight:800; color:var(--primary); text-shadow:0 0 20px var(--primary-glow);">...</div>
+                    <div style="font-size:0.9rem; color:var(--text-dim); font-weight:600;">Live Exchange Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tools', this)"><span>🛠️</span>Tools</button>
+            <button class="tab-btn" onclick="switchTab('calc', this)"><span>∫</span>Calc</button>
+            <button class="tab-btn" onclick="switchTab('curr', this)"><span>💱</span>Rates</button>
+        </div>
+    </div>
+
+    <div id="shop-view" class="modal">
+        <div style="width:100%; max-width:350px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 style="margin:0;">Shop</h2>
+                <div style="background:var(--key-bg); padding:5px 12px; border-radius:12px; border:1px solid var(--gold); color:var(--gold); font-weight:700;">
+                    <span id="shop-balance">0</span> 🪙
+                </div>
+                <button onclick="document.getElementById('shop-view').classList.remove('open')" style="background:none; border:none; color:var(--text); font-size:1.5rem;">&times;</button>
+            </div>
+            
+            <div style="background:linear-gradient(135deg, #10b981, #059669); padding:15px; border-radius:16px; margin-bottom:20px; color:white; text-align:center;">
+                <h3 style="margin:0;">Starter Pack</h3>
+                <p style="font-size:0.9rem; margin:5px 0 10px 0;">150 Coins + Gold Theme + Premium</p>
+                <div style="font-size:1.5rem; font-weight:800; margin-bottom:10px;">₹50</div>
+                <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_RwxklZ14j3h7p1" async> </script> </form>
+            </div>
+
+            <div class="section-label">Themes</div>
+            <div class="theme-grid">
+                <div class="theme-card" onclick="applyTheme('dark')">Dark</div>
+                <div class="theme-card" onclick="applyTheme('light')">Light</div>
+                <div class="theme-card" style="border-color:var(--gold); color:var(--gold);" onclick="buyTheme('gold', 100)">Gold (100¢)</div>
+                <div class="theme-card" style="border-color:#10b981; color:#10b981;" onclick="buyTheme('nature', 50)">Nature (50¢)</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="otp-modal" class="modal">
+        <h2 style="margin-bottom:10px;">Premium Access</h2>
+        <div class="g-recaptcha" data-sitekey="6LcFTjYsAAAAANZOrAvaU4RfMZ2KYqnpArX2eMzs" data-callback="enableLoginButton"></div>
+        <button id="btn-login-google" onclick="loginGoogle()" disabled style="padding:15px; background:#4285F4; color:white; border:none; border-radius:8px; font-weight:600; margin-top:15px;">Sign in with Google</button>
+        <button style="background:none; border:none; color:var(--text-dim); margin-top:20px; text-decoration:underline;" onclick="closeModal()">Skip</button>
+    </div>
+
+    <div id="profile-view" class="modal">
+        <div style="width:100%; max-width:350px;">
+            <button onclick="closeProfile()" style="float:right; background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
+            <div style="text-align:center; margin-bottom:20px;">
+                <div id="pfp-modal-container" style="width:80px; height:80px; margin:0 auto; border-radius:50%; background:var(--primary); overflow:hidden;"><div id="pfp-modal-img" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:2rem;">A</div></div>
+                <h3 id="profile-name-modal">Guest</h3>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-val" id="stat-coins">0</div><div class="stat-label">Coins</div></div>
+                    <div class="stat-box"><div class="stat-val" id="stat-wins">0</div><div class="stat-label">Wins</div></div>
+                </div>
+            </div>
+            <button class="menu-btn" style="background:var(--primary); justify-content:center;" onclick="handleSupport()">❤️ Unlock Badge</button>
+            <button class="menu-btn" id="modal-auth-btn" style="justify-content:center;" onclick="handleAuthAction()">Sign In</button>
+        </div>
+    </div>
+
+    <div class="ad-footer" id="footer-ad-container">
+        <script type="text/javascript"> atOptions = { 'key' : 'efb841baf241a82a42f707341d11cc80', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} }; </script>
+        <script type="text/javascript" src="https://backstageemergencyblame.com/efb841baf241a82a42f707341d11cc80/invoke.js"></script>
+    </div>
+
+    <div id="game-frame">
+        <div style="padding:15px; display:flex; align-items:center; background:var(--glass-solid); border-bottom:1px solid var(--border);">
+            <button onclick="closeGame()" style="background:none; border:none; color:var(--text); font-size:1.1rem; cursor:pointer; font-weight:700;">← Back</button>
+            <span style="margin-left:auto; font-weight:800; color:var(--primary); font-size:1.2rem; letter-spacing:1px;">TIC TAC TOE</span>
+        </div>
+        <iframe id="ttt-iframe" style="width:100%; height:100%; border:none;"></iframe>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        const app = initializeApp({ apiKey: "AIzaSyCKlQylNqM06kcf698NR3SyC6V50Fhqst8", authDomain: "otp-plugin-ebf6c.firebaseapp.com", projectId: "otp-plugin-ebf6c", storageBucket: "otp-plugin-ebf6c.firebasestorage.app", messagingSenderId: "1075104070230", appId: "1:1075104070230:web:8773d15b225efaf8e599f7" });
+        const auth = getAuth(app); auth.useDeviceLanguage(); const googleProvider = new GoogleAuthProvider();
+
+        let isPremium=false, pendingAction=null, currentTool=null, historyData=[], userProfile={name:"Guest",pfp:null};
+        let gameStats={wins:0, calcs:0, coins:0, unlockedThemes:['dark','light'], frameUnlocked:false};
+        
+        // --- SPLASH & INIT FIX ---
+        window.onload = () => {
+            // Force splash removal after 1.5s regardless of errors
+            setTimeout(() => {
+                 const splash = document.getElementById('splash');
+                 if(splash) splash.classList.add('hidden');
+            }, 1500);
+
+            try {
+                const s = localStorage.getItem('ace_stats'); if(s) gameStats=JSON.parse(s);
+                updateCoinsUI();
+                if(localStorage.getItem('ace_premium')==='true') activatePremium(false);
+                if(gameStats.frameUnlocked) document.querySelectorAll('#pfp-container, #pfp-modal-container').forEach(e=>e.classList.add('special-frame'));
+            } catch(e){ console.log("Init error", e); }
+        };
+
+        // UI UTILS
+        window.showToast = (msg, type='info') => {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.innerHTML = `<span>${type==='success'?'✅':type==='error'?'⚠️':'ℹ️'}</span> ${msg}`;
+            document.getElementById('toast-container').appendChild(t);
+            setTimeout(()=>t.classList.add('show'), 10);
+            setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 300); }, 3000);
+        };
+
+        onAuthStateChanged(auth, u => {
+            if(u){ userProfile={name:u.displayName, pfp:u.photoURL}; document.getElementById('modal-auth-btn').innerText="Log Out"; updateProfileUI(); showToast(`Welcome, ${u.displayName.split(' ')[0]}`); }
+        });
+
+        window.activatePremium = (vib) => { isPremium=true; localStorage.setItem('ace_premium','true'); document.getElementById('footer-ad-container').classList.add('hidden'); document.getElementById('app-container').classList.add('premium'); document.querySelectorAll('.lock-badge').forEach(e=>e.remove()); document.querySelectorAll('.lock-icon').forEach(e=>e.innerText='✅'); if(pendingAction)handleLocked(pendingAction); closeModal(); };
+        window.updateProfileUI = () => { const h=userProfile.pfp?`<img src="${userProfile.pfp}" style="width:100%;height:100%;object-fit:cover;">`:'A'; document.getElementById('profile-img').innerHTML=h; document.getElementById('pfp-modal-img').innerHTML=h; document.getElementById('profile-name').innerText=userProfile.name; document.getElementById('profile-name-modal').innerText=userProfile.name; };
+        window.openExternal = (url) => window.open(url, '_blank');
+        window.reportBug = () => window.location.href = "mailto:sarojg085@gmail.com?subject=Bug Report";
+
+        window.handleSupport = () => {
+            window.open('https://razorpay.me/@sarojsales', '_blank');
+            setTimeout(() => {
+                if(!gameStats.frameUnlocked) {
+                    gameStats.frameUnlocked = true;
+                    localStorage.setItem('ace_stats', JSON.stringify(gameStats));
+                    document.querySelectorAll('#pfp-container, #pfp-modal-container').forEach(e=>e.classList.add('special-frame'));
+                    showToast("Support Verified! Badge Unlocked.", "success");
+                }
+            }, 5000);
+        };
+
+        // UI ACTIONS
+        window.toggleMenu = () => { document.body.classList.toggle('menu-open'); document.querySelector('.side-menu').classList.toggle('open'); document.querySelector('.overlay').classList.toggle('open'); };
+        window.openShop = () => { updateCoinsUI(); document.getElementById('shop-view').classList.add('open'); };
+        window.openProfile = () => { document.getElementById('stat-wins').innerText=gameStats.wins; document.getElementById('stat-coins').innerText=gameStats.coins; document.getElementById('profile-view').classList.add('open'); };
+        window.closeProfile = () => document.getElementById('profile-view').classList.remove('open');
+        window.updateCoinsUI = () => { document.getElementById('header-coins').innerText=gameStats.coins; document.getElementById('shop-balance').innerText=gameStats.coins; document.getElementById('stat-coins').innerText=gameStats.coins; };
+        
+        window.buyTheme = (t,c) => {
+            if(gameStats.unlockedThemes.includes(t)){ applyTheme(t); return; }
+            if(gameStats.coins>=c){ if(confirm(`Buy ${t}?`)){ gameStats.coins-=c; gameStats.unlockedThemes.push(t); localStorage.setItem('ace_stats',JSON.stringify(gameStats)); updateCoinsUI(); applyTheme(t); showToast("Theme Unlocked!", "success"); } } else showToast("Need more coins!", "error");
+        };
+        window.applyTheme = (t) => document.body.setAttribute('data-theme', t);
+        
+        // CALCULATOR
+        let curr='0', prev='', op=null, reset=false, mode='num';
+        const disp = document.getElementById('display');
+        const resize = () => disp.style.fontSize = disp.innerText.length < 9 ? '3.5rem' : '2.5rem';
+        window.toggleMode = () => { 
+            mode = mode==='num'?'sci':'num'; 
+            if(mode==='sci') { document.getElementById('keys-sci').classList.add('active'); document.getElementById('keys-num').classList.remove('active'); }
+            else { document.getElementById('keys-num').classList.add('active'); document.getElementById('keys-sci').classList.remove('active'); }
+        };
+        window.num = (n) => { if(curr==='0'||reset){curr=n;reset=false;}else{curr+=n;} disp.innerText=curr; resize(); };
+        window.op = (o) => { if(o==='AC'){curr='0';prev='';op=null;disp.innerText='0';return;} if(o==='DEL'){curr=curr.slice(0,-1)||'0';disp.innerText=curr;return;} if(op)solve(); prev=curr; op=o; reset=true; };
+        window.solve = () => { if(!op)return; const a=parseFloat(prev), b=parseFloat(curr); let r=0; if(op==='+')r=a+b; if(op==='-')r=a-b; if(op==='*')r=a*b; if(op==='/')r=b===0?0:a/b; curr=String(parseFloat(r.toFixed(10))); op=null; reset=true; disp.innerText=curr; resize(); };
+        window.premium = (f) => {
+            const v=parseFloat(curr); const locked=['root','sqr','cube'];
+            if(locked.includes(f) && !isPremium){ pendingAction=f; document.getElementById('otp-modal').classList.add('open'); return; }
+            if(f==='sin')curr=Math.sin(v); if(f==='cos')curr=Math.cos(v); if(f==='tan')curr=Math.tan(v); if(f==='sqrt'||f==='root')curr=Math.sqrt(v); if(f==='sqr')curr=v*v; if(f==='cube')curr=v*v*v;
+            curr=String(parseFloat(Number(curr).toFixed(10))); reset=true; disp.innerText=curr; resize();
+        };
+        window.copyResult = () => { navigator.clipboard.writeText(curr); showToast("Result Copied!", "success"); };
+
+        // TOOLS LOGIC
+        window.openTool = (t) => {
+            currentTool=t; document.getElementById('tools-main').style.display='none'; document.getElementById('tool-ui').style.display='flex';
+            document.getElementById('tool-title').innerText = t.toUpperCase();
+            let h = '';
+            if(t==='age') h=`<input type="date" id="t-in1">`;
+            if(t==='bmi') h=`<input type="number" id="t-in1" placeholder="Weight (kg)"><input type="number" id="t-in2" placeholder="Height (cm)">`;
+            if(t==='disc') h=`<input type="number" id="t-in1" placeholder="Original Price"><input type="number" id="t-in2" placeholder="Discount %">`;
+            if(t==='tip') h=`<input type="number" id="t-in1" placeholder="Bill Amount"><input type="number" id="t-in2" placeholder="Tip %">`;
+            if(t==='loan') h=`<input type="number" id="t-in1" placeholder="Loan Amount"><input type="number" id="t-in2" placeholder="Interest Rate %"><input type="number" id="t-in3" placeholder="Months">`;
+            document.getElementById('tool-inputs').innerHTML = h; document.getElementById('tool-res').innerText = '--';
+        };
+        window.openUnit = (u) => {
+            currentTool='u_'+u; document.getElementById('tools-main').style.display='none'; document.getElementById('tool-ui').style.display='flex'; document.getElementById('tool-title').innerText=u.toUpperCase();
+            const units = { len:['m','ft','km','mi','cm'], weight:['kg','lb','g','oz'], temp:['C','F','K'], spd:['kmh','mph','ms'] };
+            document.getElementById('tool-inputs').innerHTML = `<input type="number" id="t-in1" placeholder="Value"><div style="display:flex;gap:10px;margin-top:10px;"><select id="u1">${units[u].map(x=>`<option value="${x}">${x}</option>`).join('')}</select><span>➔</span><select id="u2">${units[u].map(x=>`<option value="${x}">${x}</option>`).join('')}</select></div>`;
+        };
+        window.calcTool = () => {
+            const v1=parseFloat(document.getElementById('t-in1')?.value), v2=parseFloat(document.getElementById('t-in2')?.value), v3=parseFloat(document.getElementById('t-in3')?.value);
+            let r = '';
+            if(currentTool==='age') { const d = new Date(document.getElementById('t-in1').value); const diff = new Date() - d; const ageD = new Date(diff); r = `${Math.abs(ageD.getUTCFullYear() - 1970)} Years`; }
+            else if(currentTool==='bmi') { const bmi = v1/((v2/100)*(v2/100)); r = `BMI: ${bmi.toFixed(1)} (${bmi<18.5?'Under':bmi<25?'Normal':'Overweight'})`; }
+            else if(currentTool==='disc') { r = `Final: ${(v1*(1-v2/100)).toFixed(2)} (Saved: ${(v1*v2/100).toFixed(2)})`; }
+            else if(currentTool==='tip') { r = `Tip: ${(v1*v2/100).toFixed(2)} | Total: ${(v1*(1+v2/100)).toFixed(2)}`; }
+            else if(currentTool==='loan') { const i=v2/1200; const p = (v1*i)/(1-Math.pow(1+i, -v3)); r = `Monthly: ${p.toFixed(2)}`; }
+            else if(currentTool.startsWith('u_')) {
+                const u1=document.getElementById('u1').value, u2=document.getElementById('u2').value;
+                const factors = { m:1, km:1000, cm:0.01, ft:0.3048, mi:1609.34, kg:1, g:0.001, lb:0.453592, oz:0.0283495 };
+                if(currentTool==='u_temp'){ if(u1==='C'&&u2==='F') r=(v1*9/5)+32; else if(u1==='F'&&u2==='C') r=(v1-32)*5/9; else r=v1; r=r.toFixed(1); }
+                else { const valInBase = v1 * factors[u1]; r = (valInBase / factors[u2]).toFixed(4); }
+            }
+            document.getElementById('tool-res').innerText = r;
+        };
+        window.closeTool = () => { document.getElementById('tools-main').style.display='grid'; document.getElementById('tool-ui').style.display='none'; };
+        
+        // AUTH & MISC
+        window.enableLoginButton = () => document.getElementById('btn-login-google').removeAttribute('disabled');
+        window.loginGoogle = async () => { try{ await signInWithPopup(auth, googleProvider); closeModal(); }catch(e){showToast("Login Error", "error");} };
+        window.handleAuthAction = () => { if(userProfile.name!=='Guest') auth.signOut().then(()=>window.location.reload()); else { closeProfile(); document.getElementById('otp-modal').classList.add('open'); } };
+        window.closeModal = () => document.getElementById('otp-modal').classList.remove('open');
+        window.switchTab = (id,btn) => { document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.view-section').forEach(v=>v.classList.remove('active')); document.getElementById(id+'-view').classList.add('active'); };
+        window.closeGame = () => document.getElementById('game-frame').classList.remove('open');
+        window.handleLocked = (f) => { if(isPremium){ if(f==='ttt'){ toggleMenu(); document.getElementById('game-frame').classList.add('open'); loadTTT(); } } else { pendingAction=f; toggleMenu(); document.getElementById('otp-modal').classList.add('open'); } };
+
+        // TIC TAC TOE
+        window.loadTTT = () => { 
+            const doc = document.getElementById('ttt-iframe').contentWindow.document; doc.open();
+            doc.write(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#050505;color:white;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}#bd{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px}.cell{width:80px;height:80px;background:rgba(255,255,255,0.05);border:2px solid rgba(59,130,246,0.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:2.5em;cursor:pointer;font-weight:700}.cell.x{color:#3b82f6;text-shadow:0 0 15px #3b82f6}.cell.o{color:#ec4899;text-shadow:0 0 15px #ec4899}.btn{padding:10px 20px;background:#3b82f6;border:none;border-radius:10px;color:white;font-weight:bold;margin:5px}.menu{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:10}</style></head><body>
+            <div id="menu" class="menu"><h1>TTT ULTIMATE</h1>
+                <div style="margin-bottom:15px;display:flex;gap:10px;"><button class="btn" style="background:#10b981" onclick="setDiff('easy')">Easy</button><button class="btn" style="background:#ef4444" onclick="setDiff('hard')">Impossible</button></div>
+                <button class="btn" onclick="start('bot')">vs BOT</button><button class="btn" onclick="start('pnp')">PvP</button>
+            </div>
+            <div id="status" style="margin-bottom:20px;font-weight:bold;">Diff: Easy</div><div id="bd"></div><button class="btn" onclick="share()" style="margin-top:20px">Share Result</button>
+            <script>
+            let b=Array(9).fill(null),p='X',go=true,mode='pnp',diff='easy';
+            function setDiff(d){diff=d;document.getElementById('status').innerText='Diff: '+d.toUpperCase();event.target.style.border='2px solid white'}
+            function start(m){mode=m;document.getElementById('menu').style.display='none';init()}
+            function init(){const d=document.getElementById('bd');d.innerHTML='';for(let i=0;i<9;i++){let c=document.createElement('div');c.className='cell';c.onclick=()=>mv(i,c);d.appendChild(c)}}
+            function mv(i,c){if(!b[i]&&go){b[i]=p;c.innerText=p;c.classList.add(p.toLowerCase());if(check()){return}p=p=='X'?'O':'X';if(mode=='bot'&&p=='O'){go=false; setTimeout(bot,400)}}}
+            function bot(){
+                let empty=b.map((v,i)=>v===null?i:null).filter(v=>v!==null); if(empty.length==0)return;
+                let idx = empty[Math.floor(Math.random()*empty.length)];
+                if(diff==='hard'){ 
+                    const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+                    for(let w of wins){
+                        let x = w.filter(k=>b[k]=='X').length;
+                        let e = w.filter(k=>b[k]===null);
+                        if(x==2 && e.length==1) idx=e[0]; 
+                    }
+                }
+                go=true; mv(idx,document.querySelectorAll('.cell')[idx]);
+            }
+            function check(){
+                let w=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+                for(let c of w){ if(b[c[0]]&&b[c[0]]==b[c[1]]&&b[c[1]]==b[c[2]]){
+                    go=false; alert(b[c[0]]+" Wins!"); if(b[c[0]]=='X') window.parent.updateStats(true); 
+                    setTimeout(()=>document.getElementById('menu').style.display='flex',1500); b.fill(null); return true;
+                }}
+                if(!b.includes(null)){ alert("Draw!"); setTimeout(()=>document.getElementById('menu').style.display='flex',1000); b.fill(null); return true; } return false;
+            }
+            function share(){ navigator.share({text:"I just played TTT Ultimate on AppDrawer!"}); }
+            <\/script></body></html>`); doc.close();
+        };
+        window.updateStats=(w)=>{if(w){gameStats.wins++; gameStats.coins+=20; localStorage.setItem('ace_stats',JSON.stringify(gameStats)); updateCoinsUI(); showToast("You Won! +20 Coins", "success"); }};
+    </script>
+</body>
+</html>
